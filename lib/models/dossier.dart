@@ -4,6 +4,7 @@ class Dossier {
   final String createdAt;
   final String creatorServiceId;
   final String currentStatus;
+  final bool isSynced;
 
   Dossier({
     required this.id,
@@ -11,6 +12,7 @@ class Dossier {
     required this.createdAt,
     required this.creatorServiceId,
     required this.currentStatus,
+    this.isSynced = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -20,6 +22,7 @@ class Dossier {
       'created_at': createdAt,
       'creator_service_id': creatorServiceId,
       'current_status': currentStatus,
+      'is_synced': isSynced ? 1 : 0,
     };
   }
 
@@ -30,6 +33,7 @@ class Dossier {
       createdAt: map['created_at'] as String,
       creatorServiceId: map['creator_service_id'] as String,
       currentStatus: map['current_status'] as String? ?? 'Créé',
+      isSynced: (map['is_synced'] as int? ?? 0) == 1,
     );
   }
 }

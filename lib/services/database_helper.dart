@@ -27,6 +27,14 @@ class DatabaseHelper {
       path,
       version: 1,
       onCreate: _createDB,
+      onOpen: (db) async {
+        try {
+          await db.execute('ALTER TABLE dossiers ADD COLUMN is_synced INTEGER DEFAULT 0');
+        } catch (_) {}
+        try {
+          await db.execute('ALTER TABLE transmissions ADD COLUMN is_synced INTEGER DEFAULT 0');
+        } catch (_) {}
+      },
     );
   }
 
@@ -63,7 +71,8 @@ class DatabaseHelper {
         title $textType,
         created_at $textType,
         creator_service_id $textType,
-        current_status $textType
+        current_status $textType,
+        is_synced $integerType DEFAULT 0
       )
     ''');
 
@@ -81,7 +90,8 @@ class DatabaseHelper {
         type $textType,
         external_organization $textNullable,
         attachment_path $textNullable,
-        status $textType
+        status $textType,
+        is_synced $integerType DEFAULT 0
       )
     ''');
 
@@ -294,5 +304,32 @@ class DatabaseHelper {
       orderBy: 'date_time DESC',
     );
     return result.map((map) => Transmission.fromMap(map)).toList();
+  }
+
+  // --- SYNC Helpers ---
+  Future<List<Dossier>> getUnsyncedDossiers() async {
+    final db = await instance.database;
+    final result = await db.query('dossiers', where: 'is_synced = 0 OR is_synced IS NULL');
+    return result.map((m) => Dossier.fromMap(m)).toList();
+  }
+
+  Future<List<Transmission>> getUnsyncedTransmissions() async {
+    final db = await instance.database;
+    final result = await db.query('transmissions', where: 'is_synced = 0 OR is_synced IS NULL');
+    return result.map((m) => Transmission.fromMap(m)).toList();
+  }
+
+  Future<int> markDossiersAsSynced(List<String> ids) async {
+    if (ids.isEmpty) return 0;
+    final db = await instance.database;
+    return await db.update('dossiers', {'is_synced': 1},
+        where: 'id IN (${ids.map((_) => '?').join(',')})', whereArgs: ids);
+  }
+
+  Future<int> markTransmissionsAsSynced(List<String> ids) async {
+    if (ids.isEmpty) return 0;
+    final db = await instance.database;
+    return await db.update('transmissions', {'is_synced': 1},
+        where: 'id IN (${ids.map((_) => '?').join(',')})', whereArgs: ids);
   }
 }

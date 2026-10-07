@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:filetrack/screens/about_screen.dart';
 import 'package:filetrack/screens/admin/service_management_screen.dart';
 import 'package:filetrack/screens/admin/user_management_screen.dart';
 import 'package:filetrack/screens/dossiers/create_dossier_screen.dart';
 import 'package:filetrack/screens/dossiers/dossier_list_screen.dart';
 import 'package:filetrack/screens/db_test_screen.dart';
 import 'package:filetrack/screens/login_screen.dart';
+import 'package:filetrack/screens/settings_screen.dart';
 import 'package:filetrack/services/auth_service.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -51,6 +53,24 @@ class DashboardScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text("FileTrack - Tableau de bord"),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: "À Propos",
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AboutScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: "Réglages & Synchro",
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: "Déconnexion",
@@ -172,6 +192,55 @@ class DashboardScreen extends StatelessWidget {
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => const DossierListScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Section Configuration & Synchro
+            Text(
+              "Synchronisation & Réglages",
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF005691),
+                  ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildDashCard(
+                    context,
+                    title: "Synchro Serveur",
+                    subtitle: "Configuration API",
+                    icon: Icons.sync_rounded,
+                    color: Colors.green.shade700,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const SettingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildDashCard(
+                    context,
+                    title: "À Propos",
+                    subtitle: "Infos Mekin",
+                    icon: Icons.info_outline_rounded,
+                    color: Colors.purple.shade700,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const AboutScreen(),
                         ),
                       );
                     },

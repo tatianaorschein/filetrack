@@ -11,6 +11,7 @@ class Transmission {
   final String? externalOrganization;
   final String? attachmentPath;
   final String status; // 'émis', 'reçu', 'rejeté'
+  final bool isSynced;
 
   Transmission({
     required this.id,
@@ -25,6 +26,7 @@ class Transmission {
     this.externalOrganization,
     this.attachmentPath,
     required this.status,
+    this.isSynced = false,
   });
 
   bool get isExternal => type.toLowerCase() == 'externe';
@@ -43,6 +45,7 @@ class Transmission {
       'external_organization': externalOrganization,
       'attachment_path': attachmentPath,
       'status': status,
+      'is_synced': isSynced ? 1 : 0,
     };
   }
 
@@ -60,6 +63,7 @@ class Transmission {
       externalOrganization: map['external_organization'] as String?,
       attachmentPath: map['attachment_path'] as String?,
       status: map['status'] as String? ?? 'émis',
+      isSynced: (map['is_synced'] as int? ?? 0) == 1,
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:filetrack/models/dossier.dart';
 import 'package:filetrack/models/transmission.dart';
@@ -127,6 +128,145 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
     }
   }
 
+  Future<void> _validateExternalReturn(Transmission latestExternalTransmission) async {
+    final currentUser = AuthService.instance.currentUser;
+    if (currentUser == null) return;
+
+    final notesController = TextEditingController();
+    File? newScannedPdf;
+    final formKey = GlobalKey<FormState>();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: Text("Retour Externe : ${latestExternalTransmission.externalOrganization}"),
+            content: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Valider le retour effectif du dossier depuis l'organisme extérieur."),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: notesController,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: "Observations / Remarques de retour",
+                        hintText: "ex: Dossier visé et approuvé par le Ministère",
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return "Veuillez entrer une observation";
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    if (newScannedPdf != null) ...[
+                      Row(
+                        children: [
+                          const Icon(Icons.picture_as_pdf, color: Colors.red),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              newScannedPdf!.path.split(Platform.pathSeparator).last,
+                              style: const TextStyle(fontSize: 12),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () => setDialogState(() => newScannedPdf = null),
+                          ),
+                        ],
+                      ),
+                    ] else ...[
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final pdf = await AttachmentService.instance.pickPdfFile();
+                          if (pdf != null) {
+                            setDialogState(() => newScannedPdf = pdf);
+                          }
+                        },
+                        icon: const Icon(Icons.upload_file),
+                        label: const Text("Nouveau Scan PDF de retour (Optionnel)", style: TextStyle(fontSize: 12)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text("Annuler"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (formKey.currentState!.validate()) {
+                    Navigator.of(ctx).pop(true);
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF005691)),
+                child: const Text("Valider le Retour", style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (confirmed == true) {
+      String? savedAttachmentPath = latestExternalTransmission.attachmentPath;
+      if (newScannedPdf != null) {
+        savedAttachmentPath = await AttachmentService.instance.saveAttachmentLocally(
+          newScannedPdf!,
+          widget.dossierId,
+        );
+      }
+
+      final nowStr = DateTime.now().toIso8601String();
+      final orgName = latestExternalTransmission.externalOrganization ?? 'Organisme externe';
+
+      final returnTransmission = Transmission(
+        id: "TR-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}",
+        dossierId: widget.dossierId,
+        senderServiceId: "EXTERNE ($orgName)",
+        senderUserId: currentUser.id,
+        receiverServiceId: currentUser.serviceId,
+        receiverUserId: currentUser.id,
+        dateTime: nowStr,
+        observation: "RETOUR EXTERNE ($orgName) : ${notesController.text.trim()}",
+        type: "externe",
+        externalOrganization: orgName,
+        attachmentPath: savedAttachmentPath,
+        status: "reçu",
+      );
+
+      await DatabaseHelper.instance.insertTransmission(returnTransmission);
+      await DatabaseHelper.instance.updateDossierStatus(
+        widget.dossierId,
+        "Retourné de l'externe - Disponible à ${currentUser.serviceId}",
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Retour du dossier de $orgName validé !"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+      _loadDossierDetails();
+    }
+  }
+
   Future<void> _rejectTransmission(Transmission latestTransmission) async {
     final currentUser = AuthService.instance.currentUser;
     if (currentUser == null) return;
@@ -240,6 +380,11 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
         latestTransmission.status == 'émis' &&
         latestTransmission.receiverServiceId == currentUser?.serviceId;
 
+    final isExternalInTransitFromMyService = latestTransmission != null &&
+        latestTransmission.type == 'externe' &&
+        latestTransmission.status == 'émis' &&
+        latestTransmission.senderServiceId == currentUser?.serviceId;
+
     final isCurrentlyHeldByMyService = (latestTransmission != null &&
             latestTransmission.receiverServiceId == currentUser?.serviceId &&
             latestTransmission.status == 'reçu') ||
@@ -297,7 +442,7 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Actions Réception / Transmission
+            // Actions Réception Interne
             if (isPendingReceptionForMyService) ...[
               Card(
                 color: Colors.amber.shade50,
@@ -349,7 +494,47 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
               const SizedBox(height: 20),
             ],
 
-            // En-tête Historique
+            // Action Circuit Externe : Validation du retour
+            if (isExternalInTransitFromMyService) ...[
+              Card(
+                color: Colors.purple.shade50,
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.account_balance, color: Colors.purple),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "Circuit Externe : Transmis à ${latestTransmission.externalOrganization ?? 'Organisme externe'}",
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.purple),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: () => _validateExternalReturn(latestTransmission),
+                        icon: const Icon(Icons.assignment_return),
+                        label: const Text("VALIDER LE RETOUR DE L'ORGANISME EXTERNE"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple.shade700,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(44),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+
+            // En-tête Historique & Relance Transmission Interne
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

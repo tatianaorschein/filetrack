@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:filetrack/screens/login_screen.dart';
+import 'package:filetrack/services/sync_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  SyncService.instance.startAutoSyncTimer();
   runApp(const FileTrackApp());
 }
 
