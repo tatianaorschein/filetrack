@@ -29,17 +29,24 @@ class _AboutScreenState extends State<AboutScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF005691).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.folder_special_rounded,
-                  size: 72,
-                  color: Color(0xFF005691),
-                ),
+              // Affichage du Logo Officiel Hydro-Mekin
+              Image.asset(
+                'assets/images/logo.png',
+                height: 90,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF005691).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.folder_special_rounded,
+                      size: 72,
+                      color: Color(0xFF005691),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 20),
               Text(

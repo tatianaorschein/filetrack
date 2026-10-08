@@ -94,18 +94,24 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo / Header
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF005691).withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.folder_special_rounded,
-                      size: 64,
-                      color: Color(0xFF005691),
-                    ),
+                  // Logo Officiel Hydro-Mekin
+                  Image.asset(
+                    'assets/images/logo.png',
+                    height: 80,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF005691).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.folder_special_rounded,
+                          size: 64,
+                          color: Color(0xFF005691),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   Text(
