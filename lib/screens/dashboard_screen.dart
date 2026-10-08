@@ -1,16 +1,73 @@
 import 'package:flutter/material.dart';
+import 'package:filetrack/models/dossier.dart';
 import 'package:filetrack/screens/about_screen.dart';
 import 'package:filetrack/screens/admin/service_management_screen.dart';
 import 'package:filetrack/screens/admin/user_management_screen.dart';
 import 'package:filetrack/screens/dossiers/create_dossier_screen.dart';
+import 'package:filetrack/screens/dossiers/dossier_detail_screen.dart';
 import 'package:filetrack/screens/dossiers/dossier_list_screen.dart';
 import 'package:filetrack/screens/db_test_screen.dart';
 import 'package:filetrack/screens/login_screen.dart';
 import 'package:filetrack/screens/settings_screen.dart';
 import 'package:filetrack/services/auth_service.dart';
+import 'package:filetrack/services/database_helper.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  final _searchLocationController = TextEditingController();
+  Dossier? _foundDossier;
+  bool _searched = false;
+  int _totalDossiers = 0;
+  int _pendingReceptions = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  @override
+  void dispose() {
+    _searchLocationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadStats() async {
+    final user = AuthService.instance.currentUser;
+    final allDossiers = await DatabaseHelper.instance.getAllDossiers();
+
+    int pendingCount = 0;
+    if (user != null) {
+      final pending = await DatabaseHelper.instance
+          .getPendingTransmissionsForService(user.serviceId);
+      pendingCount = pending.length;
+    }
+
+    if (mounted) {
+      setState(() {
+        _totalDossiers = allDossiers.length;
+        _pendingReceptions = pendingCount;
+      });
+    }
+  }
+
+  Future<void> _searchLastLocation() async {
+    final query = _searchLocationController.text.trim().toUpperCase();
+    if (query.isEmpty) return;
+
+    final result = await DatabaseHelper.instance.getDossierById(query);
+
+    setState(() {
+      _foundDossier = result;
+      _searched = true;
+    });
+  }
 
   Future<void> _handleLogout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -151,11 +208,150 @@ class DashboardScreen extends StatelessWidget {
               ),
             ),
 
+            const SizedBox(height: 20),
+
+            // Cartes de Statistiques Rapides
+            Row(
+              children: [
+                Expanded(
+                  child: Card(
+                    color: Colors.blue.shade50,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Total Dossiers",
+                            style: TextStyle(color: Colors.blue.shade900, fontSize: 12),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "$_totalDossiers",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Card(
+                    color: Colors.orange.shade50,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Réceptions en attente",
+                            style: TextStyle(color: Colors.orange.shade900, fontSize: 12),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "$_pendingReceptions",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange.shade900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Outil : Recherche Rapide du Dernier Emplacement Connu
+            Text(
+              "Dernier Emplacement Connu d'un Dossier",
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF005691),
+                  ),
+            ),
+            const SizedBox(height: 10),
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _searchLocationController,
+                            textCapitalization: TextCapitalization.characters,
+                            decoration: const InputDecoration(
+                              hintText: "Saisir ID Dossier (ex: DOS-2026-001)",
+                              prefixIcon: Icon(Icons.search),
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: _searchLastLocation,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF005691),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          ),
+                          child: const Text("LOCALISER"),
+                        ),
+                      ],
+                    ),
+                    if (_searched) ...[
+                      const Divider(height: 24),
+                      if (_foundDossier != null) ...[
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const CircleAvatar(
+                            backgroundColor: Color(0xFF005691),
+                            foregroundColor: Colors.white,
+                            child: Icon(Icons.location_on),
+                          ),
+                          title: Text(_foundDossier!.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text("ID: ${_foundDossier!.id}\nEmplacement actuel : ${_foundDossier!.currentStatus}"),
+                          isThreeLine: true,
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => DossierDetailScreen(dossierId: _foundDossier!.id),
+                              ),
+                            );
+                          },
+                        ),
+                      ] else ...[
+                        const Text(
+                          "Aucun dossier trouvé pour cet identifiant.",
+                          style: TextStyle(color: Colors.red, fontStyle: FontStyle.italic),
+                        ),
+                      ],
+                    ],
+                  ],
+                ),
+              ),
+            ),
+
             const SizedBox(height: 24),
 
             // Section Suivi des Dossiers
             Text(
-              "Gestion des Dossiers",
+              "Gestion & Parcours des Dossiers",
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: const Color(0xFF005691),
@@ -171,12 +367,13 @@ class DashboardScreen extends StatelessWidget {
                     subtitle: "Créer un dossier",
                     icon: Icons.create_new_folder_rounded,
                     color: const Color(0xFF005691),
-                    onTap: () {
-                      Navigator.of(context).push(
+                    onTap: () async {
+                      await Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => const CreateDossierScreen(),
                         ),
                       );
+                      _loadStats();
                     },
                   ),
                 ),
@@ -188,12 +385,13 @@ class DashboardScreen extends StatelessWidget {
                     subtitle: "Consulter & valider",
                     icon: Icons.folder_shared_rounded,
                     color: const Color(0xFF0088CC),
-                    onTap: () {
-                      Navigator.of(context).push(
+                    onTap: () async {
+                      await Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => const DossierListScreen(),
                         ),
                       );
+                      _loadStats();
                     },
                   ),
                 ),

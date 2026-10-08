@@ -6,6 +6,7 @@ import 'package:filetrack/screens/dossiers/transmit_dossier_screen.dart';
 import 'package:filetrack/services/attachment_service.dart';
 import 'package:filetrack/services/auth_service.dart';
 import 'package:filetrack/services/database_helper.dart';
+import 'package:filetrack/services/pdf_export_service.dart';
 
 class DossierDetailScreen extends StatefulWidget {
   final String dossierId;
@@ -35,7 +36,6 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
     final dossier = await DatabaseHelper.instance.getDossierById(widget.dossierId);
     final transmissions = await DatabaseHelper.instance.getTransmissionsByDossier(widget.dossierId);
 
-    // Vérification de la règle d'accès métier à la pièce jointe
     final hasAccess = await AttachmentService.instance.canUserAccessAttachment(
       currentUser,
       widget.dossierId,
@@ -47,6 +47,14 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
       _hasAttachmentAccess = hasAccess;
       _isLoading = false;
     });
+  }
+
+  Future<void> _exportPdf() async {
+    if (_dossier == null) return;
+    await PdfExportService.instance.exportDossierHistoryPdf(
+      dossier: _dossier!,
+      transmissions: _transmissions,
+    );
   }
 
   Future<void> _openPdf(String attachmentPath) async {
@@ -393,6 +401,13 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Parcours : ${_dossier!.id}"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: "Exporter Historique PDF",
+            onPressed: _exportPdf,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -436,6 +451,17 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
                     const Divider(height: 24),
                     Text("Service créateur : ${_dossier!.creatorServiceId}"),
                     Text("Date de création : ${_dossier!.createdAt.substring(0, 10)}"),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: _exportPdf,
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text("EXPORTER HISTORIQUE EN PDF"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF005691),
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(40),
+                      ),
+                    ),
                   ],
                 ),
               ),

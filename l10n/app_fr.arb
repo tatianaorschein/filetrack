@@ -1,0 +1,17 @@
+{
+  "@@locale": "fr",
+  "appTitle": "FileTrack",
+  "dashboardTitle": "Tableau de bord",
+  "aboutTitle": "À Propos",
+  "settingsTitle": "Réglages & Synchronisation",
+  "loginTitle": "Connexion",
+  "userId": "Identifiant utilisateur",
+  "pinCode": "Code PIN",
+  "loginButton": "SE CONNECTER",
+  "newDossier": "Nouveau Dossier",
+  "trackingAndReception": "Suivi & Réception",
+  "exportPdfHistory": "Exporter Historique (PDF)",
+  "lastKnownLocation": "Dernier emplacement connu",
+  "transmissionHistory": "Historique des Transmissions",
+  "aboutDescription": "FileTrack est une application de suivi des dossiers, réalisée par la SDCAF de la société Mekin Hydroelectric Development Corporation (Hydro-Mekin)."
+}
