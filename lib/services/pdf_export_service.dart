@@ -24,11 +24,11 @@ class PdfExportService {
           return [
             // En-tête Institutionnel Hydro-Mekin
             pw.Row(
-              main: pw.MainAxisAlignment.spaceBetween,
-              cross: pw.CrossAxisAlignment.start,
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Column(
-                  cross: pw.CrossAxisAlignment.start,
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
                       "HYDRO-MEKIN",
@@ -53,7 +53,7 @@ class PdfExportService {
                   ],
                 ),
                 pw.Column(
-                  cross: pw.CrossAxisAlignment.end,
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Text(
                       "RÉPUBLIQUE DU CAMEROUN",
@@ -97,10 +97,10 @@ class PdfExportService {
                 border: pw.Border.all(color: PdfColors.grey300),
               ),
               child: pw.Column(
-                cross: pw.CrossAxisAlignment.start,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Row(
-                    main: pw.MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text(
                         "Identifiant : ${dossier.id}",
@@ -193,10 +193,10 @@ class PdfExportService {
 
             // Section 3 : Bloc d'authentification / Visa
             pw.Row(
-              mainpw: pw.MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Column(
-                  cross: pw.CrossAxisAlignment.center,
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
                     pw.Text("Le Service Émetteur / Visa",
                         style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
@@ -206,7 +206,7 @@ class PdfExportService {
                   ],
                 ),
                 pw.Column(
-                  cross: pw.CrossAxisAlignment.center,
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
                     pw.Text("Le Chef de Service SDCAF",
                         style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
