@@ -22,6 +22,16 @@ class ApiService {
     await prefs.setString('server_url', url.trim());
   }
 
+  Future<String> getApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('api_key') ?? '';
+  }
+
+  Future<void> setApiKey(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('api_key', key.trim());
+  }
+
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('jwt_token');
@@ -32,13 +42,37 @@ class ApiService {
     await prefs.setString('jwt_token', token);
   }
 
+  /// Génère les en-têtes HTTP incluant la clé API Supabase (apikey) et le Bearer Token
+  Future<Map<String, String>> _getHeaders() async {
+    final apiKey = await getApiKey();
+    final token = await getToken();
+
+    final Map<String, String> headers = {
+      'Content-Type': 'application/json',
+    };
+
+    if (apiKey.isNotEmpty) {
+      headers['apikey'] = apiKey;
+    }
+
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    } else if (apiKey.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $apiKey';
+    }
+
+    return headers;
+  }
+
   /// Connexion REST et récupération du token JWT
   Future<bool> login(String userId, String pin) async {
     try {
       final baseUrl = await getBaseUrl();
+      final headers = await _getHeaders();
+
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode({'user_id': userId, 'pin': pin}),
       ).timeout(const Duration(seconds: 10));
 
@@ -62,14 +96,11 @@ class ApiService {
 
     try {
       final baseUrl = await getBaseUrl();
-      final token = await getToken();
+      final headers = await _getHeaders();
 
       final response = await http.post(
         Uri.parse('$baseUrl/sync/push'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
+        headers: headers,
         body: jsonEncode({
           'dossiers': dossiers.map((d) => d.toMap()).toList(),
           'transmissions': transmissions.map((t) => t.toMap()).toList(),
@@ -90,7 +121,7 @@ class ApiService {
   Future<Map<String, dynamic>?> pullRemoteData(String sinceTimestamp) async {
     try {
       final baseUrl = await getBaseUrl();
-      final token = await getToken();
+      final headers = await _getHeaders();
 
       final Uri uri = Uri.parse('$baseUrl/sync/pull').replace(
         queryParameters: {'since': sinceTimestamp},
@@ -98,10 +129,7 @@ class ApiService {
 
       final response = await http.get(
         uri,
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
+        headers: headers,
       ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
@@ -119,6 +147,7 @@ class ApiService {
   }) async {
     try {
       final baseUrl = await getBaseUrl();
+      final apiKey = await getApiKey();
       final token = await getToken();
 
       final request = http.MultipartRequest(
@@ -126,8 +155,14 @@ class ApiService {
         Uri.parse('$baseUrl/attachments/upload'),
       );
 
-      if (token != null) {
+      if (apiKey.isNotEmpty) {
+        request.headers['apikey'] = apiKey;
+      }
+
+      if (token != null && token.isNotEmpty) {
         request.headers['Authorization'] = 'Bearer $token';
+      } else if (apiKey.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $apiKey';
       }
 
       request.fields['dossier_id'] = dossierId;
